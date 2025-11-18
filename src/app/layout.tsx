@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import './globals.css'
+import { Navbar } from '@/components/layout/Navbar'
 
 export const metadata = {
   title: 'RenovAI - Simulateur de travaux avec IA',
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="min-h-screen bg-background text-foreground">
+        <Navbar />
         {children}
       </body>
     </html>

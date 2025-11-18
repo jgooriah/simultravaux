@@ -1,43 +1,32 @@
-import { MousePointer, MessageSquare, Brain, FileDown } from 'lucide-react'
+import { MousePointer, MessageSquare, Brain } from 'lucide-react'
 
 const steps = [
   {
     icon: MousePointer,
-    title: 'Choisissez vos travaux',
+    title: 'Choisissez votre projet',
     description:
-      'Sélectionnez le type de travaux que vous souhaitez réaliser parmi nos nombreuses catégories.',
-    color: 'from-blue-500 to-blue-600',
+      'Sélectionnez le type de travaux parmi nos catégories (salle de bain, peinture, électricité...).',
     number: '01',
   },
   {
     icon: MessageSquare,
-    title: 'Répondez aux questions',
+    title: 'Répondez au questionnaire',
     description:
-      'Décrivez votre projet en quelques questions simples sur la surface, l\'état actuel et vos préférences.',
-    color: 'from-orange-500 to-orange-600',
+      'Surface, état actuel, qualité souhaitée... Quelques questions suffisent pour contextualiser votre besoin.',
     number: '02',
   },
   {
     icon: Brain,
-    title: 'IA analyse votre projet',
+    title: 'Recevez votre estimation',
     description:
-      'Notre intelligence artificielle calcule une estimation précise en analysant des milliers de projets similaires.',
-    color: 'from-green-500 to-green-600',
+      'Notre IA calcule instantanément une fourchette de prix réaliste avec détails, facteurs et conseils.',
     number: '03',
-  },
-  {
-    icon: FileDown,
-    title: 'Téléchargez votre devis',
-    description:
-      'Recevez instantanément un devis détaillé au format PDF avec tous les détails de l\'estimation.',
-    color: 'from-purple-500 to-purple-600',
-    number: '04',
   },
 ]
 
 export function HowItWorks() {
   return (
-    <section className="bg-gray-50 py-20">
+    <section id="comment-ca-marche" className="bg-gray-50 py-20">
       <div className="container mx-auto px-4">
         <div className="mb-16 text-center">
           <h2 className="mb-4 text-4xl font-bold text-gray-900">
@@ -48,61 +37,29 @@ export function HowItWorks() {
           </p>
         </div>
 
-        <div className="relative">
-          {/* Connection line */}
-          <div className="absolute left-1/2 top-0 hidden h-full w-0.5 -translate-x-1/2 bg-gradient-to-b from-blue-200 to-purple-200 lg:block" />
-
-          <div className="space-y-16">
-            {steps.map((step, index) => {
-              const Icon = step.icon
-              const isEven = index % 2 === 0
-
-              return (
-                <div
-                  key={step.title}
-                  className={`relative flex flex-col items-center gap-8 lg:flex-row ${
-                    isEven ? '' : 'lg:flex-row-reverse'
-                  }`}
-                >
-                  {/* Content */}
-                  <div
-                    className={`w-full lg:w-5/12 ${
-                      isEven ? 'lg:text-right' : 'lg:text-left'
-                    }`}
-                  >
-                    <div className="rounded-2xl bg-white p-8 shadow-lg">
-                      <div
-                        className={`mb-4 inline-block text-5xl font-bold text-gray-200 ${
-                          isEven ? 'lg:float-right' : 'lg:float-left'
-                        }`}
-                      >
-                        {step.number}
-                      </div>
-                      <h3 className="mb-3 text-2xl font-bold text-gray-900">
-                        {step.title}
-                      </h3>
-                      <p className="text-gray-600">{step.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Icon in the middle */}
-                  <div className="relative z-10 flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br shadow-lg lg:h-24 lg:w-24">
-                    <div
-                      className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br ${step.color}`}
-                    >
-                      <Icon className="h-10 w-10 text-white lg:h-12 lg:w-12" />
-                    </div>
-                  </div>
-
-                  {/* Spacer for layout */}
-                  <div className="hidden w-5/12 lg:block" />
+        <div className="grid gap-8 md:grid-cols-3">
+          {steps.map((step) => {
+            const Icon = step.icon
+            return (
+              <div
+                key={step.title}
+                className="rounded-2xl bg-white p-8 text-center shadow-lg"
+              >
+                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                  <Icon className="h-8 w-8" />
                 </div>
-              )
-            })}
-          </div>
+                <p className="text-sm font-semibold uppercase tracking-widest text-blue-500">
+                  {step.number}
+                </p>
+                <h3 className="mt-2 text-2xl font-bold text-gray-900">
+                  {step.title}
+                </h3>
+                <p className="mt-3 text-gray-600">{step.description}</p>
+              </div>
+            )
+          })}
         </div>
 
-        {/* CTA */}
         <div className="mt-16 text-center">
           <a
             href="/simulator"
