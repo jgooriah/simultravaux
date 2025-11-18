@@ -1,0 +1,224 @@
+# Règles de développement pour RenovAI
+
+Tu es un assistant de développement expert spécialisé en Next.js 14, TypeScript et React.
+
+## Stack technique
+- Next.js 14 avec App Router
+- TypeScript strict
+- Tailwind CSS pour le styling
+- shadcn/ui pour les composants UI
+- Framer Motion pour les animations
+- React Hook Form + Zod pour les formulaires
+- Claude API pour l'IA
+
+## Principes de code
+
+### Architecture
+- Utilise l'App Router de Next.js 14 (pas de Pages Router)
+- Composants serveur par défaut, 'use client' uniquement si nécessaire
+- Structure modulaire et séparation des préoccupations
+- Favorise la composition de composants
+- Types TypeScript stricts, pas de 'any'
+
+### Conventions de nommage
+- Fichiers composants: PascalCase (ex: HeroSection.tsx)
+- Fichiers utilitaires: kebab-case (ex: format-price.ts)
+- Fonctions: camelCase (ex: calculateEstimate)
+- Types/Interfaces: PascalCase avec préfixe 'T' pour types (ex: TWorkType)
+- Constantes: UPPER_SNAKE_CASE (ex: API_ENDPOINTS)
+
+### Structure des composants
+```typescript
+// Imports
+import { type FC } from 'react'
+
+// Types
+interface ComponentNameProps {
+  prop: string
+}
+
+// Composant
+export const ComponentName: FC<ComponentNameProps> = ({ prop }) => {
+  // Hooks
+  // Handlers
+  // Render
+  return (
+    <div className="...">
+      {/* JSX */}
+    </div>
+  )
+}
+```
+
+### Styling Tailwind
+- Utilise les classes utilitaires de Tailwind
+- Classes responsive mobile-first: sm:, md:, lg:, xl:
+- Variantes: hover:, focus:, active:, disabled:
+- Pas de CSS custom sauf absolument nécessaire
+- Utilise cn() pour combiner les classes conditionnellement
+- Design tokens via tailwind.config.ts
+
+### Gestion d'état
+- useState pour l'état local
+- useContext pour l'état partagé léger
+- Props drilling minimal (max 2 niveaux)
+- Server Components pour data fetching côté serveur
+- Pas de Redux dans le MVP
+
+### Performance
+- Lazy loading des composants lourds (next/dynamic)
+- Images optimisées avec next/image
+- Fonts optimisés avec next/font
+- Suspense boundaries pour le streaming
+- Minimise les rerenders (React.memo si nécessaire)
+
+### Accessibilité
+- Attributs ARIA appropriés
+- Navigation au clavier
+- Labels pour tous les inputs
+- Contraste suffisant (WCAG AA)
+- Focus visible
+
+### API Routes
+- Validation des inputs avec Zod
+- Gestion des erreurs appropriée
+- Status codes HTTP corrects
+- Rate limiting (future)
+- Logs structurés
+
+### IA & Prompts
+- Prompts structurés et testés
+- Gestion des timeouts
+- Fallbacks si API échoue
+- Validation stricte des réponses IA
+- Logging des appels pour monitoring
+
+## Bonnes pratiques spécifiques
+
+### Forms
+```typescript
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const schema = z.object({
+  field: z.string().min(1, 'Required')
+})
+
+const form = useForm({
+  resolver: zodResolver(schema)
+})
+```
+
+### Error Handling
+```typescript
+try {
+  const result = await riskyOperation()
+  return result
+} catch (error) {
+  console.error('Operation failed:', error)
+  // User-friendly error message
+  throw new Error('Une erreur est survenue')
+}
+```
+
+### API Calls
+```typescript
+const response = await fetch('/api/endpoint', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(data)
+})
+
+if (!response.ok) {
+  throw new Error('API call failed')
+}
+
+const result = await response.json()
+```
+
+## Interdictions
+
+- ❌ Pas de 'any' en TypeScript
+- ❌ Pas de console.log en production (utilise un logger)
+- ❌ Pas de secrets dans le code (utilise .env)
+- ❌ Pas de CSS inline sauf cas exceptionnel
+- ❌ Pas de composants > 300 lignes (refactor)
+- ❌ Pas de props drilling > 2 niveaux
+- ❌ Pas de fetch côté client pour data initiale (use Server Components)
+
+## Sécurité
+
+- Validation stricte des inputs utilisateur
+- Sanitization des données avant affichage
+- Variables d'environnement pour secrets
+- HTTPS uniquement en production
+- CORS approprié pour les API
+- Rate limiting sur les endpoints sensibles
+
+## Testing (Future)
+
+- Tests unitaires avec Jest
+- Tests d'intégration avec Testing Library
+- Tests E2E avec Playwright
+- Coverage minimum 70%
+
+## Git
+
+- Commits atomiques et descriptifs
+- Convention: type(scope): message
+  - feat: nouvelle fonctionnalité
+  - fix: correction de bug
+  - refactor: refactoring
+  - style: formatage
+  - docs: documentation
+  - chore: tâches de maintenance
+- Branches: feature/*, fix/*, refactor/*
+
+## Documentation
+
+- JSDoc pour les fonctions complexes
+- README.md à jour
+- Commentaires uniquement pour le "pourquoi", pas le "quoi"
+- Types TypeScript auto-documentants
+
+## Commandes utiles
+
+```bash
+# Dev
+pnpm dev
+
+# Build
+pnpm build
+
+# Lint
+pnpm lint
+
+# Format
+pnpm format
+
+# Type check
+pnpm type-check
+```
+
+## Priorités de développement
+
+1. **Fonctionnalité** - Ça marche
+2. **UX** - C'est agréable à utiliser
+3. **Performance** - C'est rapide
+4. **Maintenabilité** - C'est facile à modifier
+5. **Perfectionnisme** - C'est parfait (mais ne bloque pas pour ça)
+
+## En cas de doute
+
+- Privilégie la simplicité
+- Suis les conventions Next.js
+- Réutilise les composants shadcn/ui
+- Demande si tu n'es pas sûr
+- Documente les décisions non-évidentes
+
+---
+
+🎯 **Objectif**: Créer une application moderne, performante et maintenable qui offre une excellente expérience utilisateur.
+
+
