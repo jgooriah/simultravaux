@@ -1,0 +1,11 @@
+{
+  "workTypeId": "painting-exterior",
+  "answers": {
+    "surface-area": 16,
+    "facade-type": "smooth",
+    "condition": "good",
+    "postal-code": "77",
+    "timeline": "normal"
+  }
+}
+

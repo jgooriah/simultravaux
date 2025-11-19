@@ -25,7 +25,7 @@ export function Hero() {
         <div className="mx-auto max-w-5xl text-center">
           <div className="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm font-medium text-blue-700">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1">
-              <Sparkles className="h-4 w-4" />
+            <Sparkles className="h-4 w-4" />
               100% Gratuit • Sans engagement
             </span>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1">
@@ -47,7 +47,7 @@ export function Hero() {
           </p>
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="/simulator">
+            <Link href="/select-work">
               <Button size="lg" className="w-full sm:w-auto">
                 Commencer mon estimation
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -75,7 +75,7 @@ export function Hero() {
                 <p className="mt-2 text-2xl font-semibold text-gray-900">
                   {item.value}
                 </p>
-              </div>
+            </div>
             ))}
           </div>
         </div>

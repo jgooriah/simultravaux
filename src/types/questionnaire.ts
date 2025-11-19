@@ -2,6 +2,9 @@
 
 import { type WorkTypeId } from './work-types'
 
+// Re-export WorkTypeId pour faciliter l'import
+export type { WorkTypeId } from './work-types'
+
 // Types de questions
 export type QuestionType =
   | 'text'

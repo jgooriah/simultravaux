@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { UserMenu } from './UserMenu'
 
 const links = [
   { href: '#hero', label: 'Accueil' },
-  { href: '/simulator', label: 'Simulateur' },
+  { href: '/select-work', label: 'Simulateur' },
   { href: '#estimation-ia', label: 'Estimation IA' },
   { href: '#analyse-photo', label: 'Analyse Photo IA' },
   { href: '/roadmap', label: 'Roadmap' },
@@ -31,15 +32,10 @@ export function Navbar() {
           ))}
         </nav>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">Connexion</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/signup">Inscription</Link>
-          </Button>
           <Button size="sm" className="hidden md:inline-flex" asChild>
-            <Link href="/simulator">Commencer</Link>
+            <Link href="/select-work">Commencer</Link>
           </Button>
+          <UserMenu />
         </div>
       </div>
     </header>

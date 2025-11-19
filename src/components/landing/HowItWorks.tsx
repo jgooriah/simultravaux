@@ -39,30 +39,30 @@ export function HowItWorks() {
 
         <div className="grid gap-8 md:grid-cols-3">
           {steps.map((step) => {
-            const Icon = step.icon
-            return (
-              <div
-                key={step.title}
+              const Icon = step.icon
+              return (
+                <div
+                  key={step.title}
                 className="rounded-2xl bg-white p-8 text-center shadow-lg"
               >
                 <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                   <Icon className="h-8 w-8" />
                 </div>
                 <p className="text-sm font-semibold uppercase tracking-widest text-blue-500">
-                  {step.number}
+                        {step.number}
                 </p>
                 <h3 className="mt-2 text-2xl font-bold text-gray-900">
-                  {step.title}
-                </h3>
+                        {step.title}
+                      </h3>
                 <p className="mt-3 text-gray-600">{step.description}</p>
-              </div>
-            )
-          })}
+                </div>
+              )
+            })}
         </div>
 
         <div className="mt-16 text-center">
           <a
-            href="/simulator"
+            href="/select-work"
             className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-orange-500 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-transform hover:scale-105"
           >
             Commencer mon estimation

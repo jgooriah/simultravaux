@@ -51,7 +51,7 @@ export function WorkTypeGrid() {
                   </div>
                   <Button variant="outline" asChild>
                     <Link href={`/simulator?workType=${workType.id}`}>
-                      Obtenir une estimation <ArrowRight className="ml-2 h-4 w-4" />
+                      Commencer <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
                 </CardContent>
