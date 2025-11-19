@@ -4,7 +4,6 @@ import Anthropic from '@anthropic-ai/sdk'
 // Configuration - FORCER MODE DÉMO (problème d'accès aux modèles Claude)
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const isDemoMode = true  // FORCÉ : la clé API existe mais n'a pas accès aux modèles
-const anthropic = null
 
 console.log('🎯 [Chat API Config] MODE DÉMO OPTIMISÉ (accès modèles limité - clé API présente mais non fonctionnelle)')
 
@@ -59,51 +58,21 @@ export async function POST(request: NextRequest) {
           return
         }
 
-        // Mode démo OU Claude API
-        if (isDemoMode) {
-          console.log('⚠️ [Chat API] Mode DÉMO (pas de clé API Claude)')
-          const demoResponse = generateDemoResponse(messages)
-          console.log('💬 [Demo] Réponse:', demoResponse.substring(0, 100) + '...')
-          
-          // Streaming de la réponse démo
-          for (let i = 0; i < demoResponse.length; i++) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text: demoResponse[i] })}\n\n`)
-            )
-            await new Promise((resolve) => setTimeout(resolve, 15))
-          }
-
-          controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
-          console.log('✅ [Demo] Réponse envoyée')
-          controller.close()
-          return
-        }
-
-        // Mode Claude API (utiliser Claude 3 Sonnet au lieu de 3.5)
-        console.log('✅ [Claude API] Appel à Claude...')
-        const stream = await anthropic.messages.stream({
-          model: 'claude-3-sonnet-20240229',
-          max_tokens: 2048,
-          system: SYSTEM_PROMPT,
-          messages: messages.map((m: any) => ({
-            role: m.role,
-            content: m.content
-          }))
-        })
-
-        console.log('📡 [Claude API] Stream démarré')
-
-        // Streaming de Claude
-        for await (const chunk of stream) {
-          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`)
-            )
-          }
+        // Mode démo optimisé
+        console.log('⚠️ [Chat API] Mode DÉMO')
+        const demoResponse = generateDemoResponse(messages)
+        console.log('💬 [Demo] Réponse:', demoResponse.substring(0, 100) + '...')
+        
+        // Streaming de la réponse démo
+        for (let i = 0; i < demoResponse.length; i++) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ text: demoResponse[i] })}\n\n`)
+          )
+          await new Promise((resolve) => setTimeout(resolve, 15))
         }
 
         controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
-        console.log('✅ [Claude API] Réponse complète')
+        console.log('✅ [Demo] Réponse envoyée')
         controller.close()
       } catch (error: any) {
         console.error('❌ [Chat API] ERREUR:', error)

@@ -181,7 +181,7 @@ export default function SimulatorPage() {
           <Sparkles className="inline h-5 w-5" /> Mode IA Premium Activé
         </div>
       )}
-      <QuestionnaireForm questionnaire={questionnaire} onComplete={handleComplete} isLoading={isGenerating} />
+      <QuestionnaireForm questionnaire={questionnaire} onComplete={handleComplete} />
       <Footer />
     </>
   )
