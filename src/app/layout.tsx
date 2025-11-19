@@ -2,10 +2,14 @@ import type { ReactNode } from 'react'
 import './globals.css'
 import { Navbar } from '@/components/layout/Navbar'
 
+// Force dynamic rendering for ALL pages
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export const metadata = {
   title: 'RenovAI - Simulateur de travaux avec IA',
   description:
-    'Estimez le coût de vos travaux de rénovation grâce à l’intelligence artificielle.',
+    "Estimez le coût de vos travaux de rénovation grâce à l'intelligence artificielle.",
 }
 
 export default function RootLayout({
