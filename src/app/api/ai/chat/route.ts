@@ -331,8 +331,15 @@ function generateDemoResponse(messages: any[]): string {
     
     const surfaceStr = surfaceMatch[1].replace(/\s/g, '') // Enlever les espaces
     const surface = parseFloat(surfaceStr)
-    const quality = qualityMatch[0].toLowerCase()
+    
+    // CORRECTION: Détecter la qualité UNIQUEMENT dans les derniers messages de l'utilisateur
+    const lastUserMessages = messages.filter((m: any) => m.role === 'user').slice(-3).map((m: any) => m.content).join(' ').toLowerCase()
+    const qualityMatchUser = lastUserMessages.match(/(?:premium|haut de gamme|économique|budget|standard|moyen)/i)
+    const quality = qualityMatchUser ? qualityMatchUser[0].toLowerCase() : qualityMatch[0].toLowerCase()
+    
     const postalCode = postalMatch[0]
+    
+    console.log('🎯 [Demo] Qualité détectée dans derniers messages utilisateur:', quality)
 
     console.log('📏 [Demo] Surface extraite:', surfaceStr, '→', surface, 'm²')
 
