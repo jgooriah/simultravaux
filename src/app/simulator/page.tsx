@@ -1,6 +1,8 @@
 "use client"
 
+// Force dynamic rendering
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
