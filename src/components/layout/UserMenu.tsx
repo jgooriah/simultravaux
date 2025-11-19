@@ -93,7 +93,7 @@ export function UserMenu() {
 
             <div className="p-2">
               <Link
-                href="/dashboard"
+                href="/mes-estimations"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
                 onClick={() => setIsOpen(false)}
               >
