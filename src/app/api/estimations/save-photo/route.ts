@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const estimationData = {
       id: `photo_${Date.now()}_${user.id.substring(0, 8)}`,
       user_id: user.id,
-      work_type_id: 'photo_ia',
+      work_type_id: 'analyse_photo',
       work_type_name: result.workType || 'Analyse Photo IA',
       estimation_min: result.estimatedBudget.min,
       estimation_max: result.estimatedBudget.max,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         'current-state': result.currentState,
       },
       is_favorite: false,
-      method_type: 'photo_ia',
+      method_type: 'analyse_photo',
     }
 
     // Upsert dans Supabase
