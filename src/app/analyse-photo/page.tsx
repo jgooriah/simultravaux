@@ -437,21 +437,25 @@ export default function AnalyzePhotoPage() {
               {/* Actions */}
               <div className="mt-8 flex gap-3">
                 <Button
-                  onClick={() => {
-                    // Sauvegarder l'estimation
-                    const estimation = {
-                      id: Date.now().toString(),
-                      type: 'photo',
-                      content: JSON.stringify(result),
-                      createdAt: Date.now(),
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/estimations/save-photo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ result }),
+                      })
+
+                      const data = await response.json()
+
+                      if (data.success) {
+                        alert('✅ Analyse sauvegardée dans "Mes estimations" !')
+                      } else {
+                        alert('❌ Erreur lors de la sauvegarde: ' + data.error.message)
+                      }
+                    } catch (error) {
+                      console.error('Erreur sauvegarde:', error)
+                      alert('❌ Une erreur est survenue lors de la sauvegarde')
                     }
-                    
-                    const saved = localStorage.getItem('saved-estimations') || '[]'
-                    const estimations = JSON.parse(saved)
-                    estimations.push(estimation)
-                    localStorage.setItem('saved-estimations', JSON.stringify(estimations))
-                    
-                    alert('✅ Analyse sauvegardée dans "Mes estimations" !')
                   }}
                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600"
                 >

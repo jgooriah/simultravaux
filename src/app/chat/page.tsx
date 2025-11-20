@@ -542,21 +542,33 @@ export default function ChatPage() {
                     {message.role === 'assistant' && (message.content.includes('Budget') || message.content.includes('budget') || message.content.includes('€')) && message.content.length > 200 && (
                       <div className="mt-3 flex gap-2 border-t border-gray-200 pt-3">
                         <Button
-                          onClick={() => {
-                            const estimation = {
-                              id: Date.now().toString(),
-                              content: message.content,
-                              chatId: currentChatId,
-                              createdAt: Date.now(),
+                          onClick={async () => {
+                            try {
+                              const response = await fetch('/api/estimations/save-chat', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  content: message.content,
+                                  chatId: currentChatId,
+                                }),
+                              })
+
+                              const result = await response.json()
+
+                              if (result.success) {
+                                alert('✅ Estimation sauvegardée dans "Mes estimations" !')
+                              } else {
+                                if (result.error.code === 'UNAUTHORIZED') {
+                                  alert('❌ Vous devez être connecté pour sauvegarder')
+                                  window.location.href = '/login?redirect=/chat'
+                                } else {
+                                  alert('❌ Erreur lors de la sauvegarde: ' + result.error.message)
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Erreur sauvegarde:', error)
+                              alert('❌ Une erreur est survenue lors de la sauvegarde')
                             }
-                            
-                            // Sauvegarder dans localStorage
-                            const saved = localStorage.getItem('saved-estimations') || '[]'
-                            const estimations = JSON.parse(saved)
-                            estimations.push(estimation)
-                            localStorage.setItem('saved-estimations', JSON.stringify(estimations))
-                            
-                            alert('✅ Estimation sauvegardée dans "Mes estimations" !')
                           }}
                           className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 py-2 text-sm font-medium text-white shadow-md hover:from-green-700 hover:to-emerald-700 hover:shadow-lg"
                         >
