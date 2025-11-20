@@ -36,32 +36,94 @@ export default function MesEstimationsPage() {
 
     setIsAuthenticated(true)
     
-    // Charger les estimations depuis localStorage
-    const saved = localStorage.getItem('saved-estimations') || '[]'
+    // Charger les estimations depuis Supabase
     try {
-      const parsed = JSON.parse(saved)
-      setEstimations(parsed.sort((a: SavedEstimation, b: SavedEstimation) => b.createdAt - a.createdAt))
+      const { data, error } = await supabase
+        .from('estimations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Erreur chargement estimations:', error)
+      } else if (data) {
+        // Convertir le format Supabase en format SavedEstimation
+        const formatted = data.map((est: any) => ({
+          id: est.id,
+          content: '', // Pas utilisé, on utilise structuredData
+          structuredData: {
+            workType: est.work_type_name,
+            surface: extractSurfaceFromAnswers(est.questionnaire_answers),
+            budget: {
+              min: est.estimation_min,
+              moyen: est.estimation_moyen,
+              max: est.estimation_max,
+            },
+            delai: est.delai,
+            quality: extractQualityFromAnswers(est.questionnaire_answers),
+            postalCode: est.questionnaire_answers?.['postal-code'] || null,
+          },
+          chatId: null,
+          createdAt: new Date(est.created_at).getTime(),
+        }))
+        setEstimations(formatted)
+      }
     } catch (e) {
       console.error('Erreur chargement estimations:', e)
     }
     
     setIsLoading(false)
   }
-
-  const deleteEstimation = (id: string) => {
-    const updated = estimations.filter((e) => e.id !== id)
-    setEstimations(updated)
-    localStorage.setItem('saved-estimations', JSON.stringify(updated))
+  
+  const extractSurfaceFromAnswers = (answers: any) => {
+    const surface = answers?.['surface-area'] || answers?.['bathroom-size'] || answers?.['kitchen-size']
+    return surface ? `${surface}m²` : 'Non spécifié'
+  }
+  
+  const extractQualityFromAnswers = (answers: any) => {
+    return answers?.['paint-quality'] || answers?.['equipment-range'] || answers?.['quality'] || 'Standard'
   }
 
-  const extractEstimationDetails = (content: string) => {
-    // Essayer de parser comme JSON (analyse photo)
+  const deleteEstimation = async (id: string) => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('estimations')
+        .delete()
+        .eq('id', id)
+      
+      if (error) {
+        console.error('Erreur suppression:', error)
+        alert('❌ Erreur lors de la suppression')
+      } else {
+        const updated = estimations.filter((e) => e.id !== id)
+        setEstimations(updated)
+      }
+    } catch (e) {
+      console.error('Erreur suppression:', e)
+      alert('❌ Erreur lors de la suppression')
+    }
+  }
+
+  const extractEstimationDetails = (estimation: any) => {
+    // Priorité 1: Données structurées (nouveau format)
+    if (estimation.structuredData) {
+      return {
+        surface: estimation.structuredData.surface || '?',
+        type: estimation.structuredData.workType || 'Travaux',
+        montant: estimation.structuredData.budget?.moyen?.toLocaleString('fr-FR') || '?',
+      }
+    }
+    
+    const content = estimation.content || ''
+    
+    // Priorité 2: Parser comme JSON (analyse photo)
     try {
       const parsed = JSON.parse(content)
       if (parsed.workType && parsed.estimatedBudget) {
         const surface = parsed.estimatedArea?.match(/(\d+)/)?.[1] || '?'
         return {
-          surface,
+          surface: surface + 'm²',
           type: parsed.workType || 'Travaux',
           montant: parsed.estimatedBudget.average?.toLocaleString('fr-FR') || '?',
         }
@@ -70,14 +132,27 @@ export default function MesEstimationsPage() {
       // Pas du JSON, continuer avec le parsing texte
     }
     
-    // Parsing texte (chat IA)
-    const budgetMatch = content.match(/Budget estimé pour (\d+)m² de (.+?) :/)
-    const moyenMatch = content.match(/Moyen : \*\*(.+?)€\*\*/)
+    // Priorité 3: Parsing texte (nouveau format avec "Surface:")
+    const surfaceMatch = content.match(/Surface:\s*(\d+m²|Non spécifié)/)
+    const typeMatch = content.match(/Budget estimé pour (.+?)\n/)
+    const moyenMatch = content.match(/Moyen:\s*([\d\s]+)€/)
+    
+    if (surfaceMatch && typeMatch) {
+      return {
+        surface: surfaceMatch[1],
+        type: typeMatch[1].trim(),
+        montant: moyenMatch ? moyenMatch[1].trim().replace(/\s/g, ' ') : '?',
+      }
+    }
+    
+    // Priorité 4: Ancien format texte (chat IA)
+    const oldBudgetMatch = content.match(/Budget estimé pour (\d+)m² de (.+?) :/)
+    const oldMoyenMatch = content.match(/Moyen : \*\*(.+?)€\*\*/)
     
     return {
-      surface: budgetMatch ? budgetMatch[1] : '?',
-      type: budgetMatch ? budgetMatch[2].trim() : 'Travaux',
-      montant: moyenMatch ? moyenMatch[1] : '?',
+      surface: oldBudgetMatch ? oldBudgetMatch[1] + 'm²' : '?',
+      type: oldBudgetMatch ? oldBudgetMatch[2].trim() : typeMatch ? typeMatch[1].trim() : 'Travaux',
+      montant: oldMoyenMatch ? oldMoyenMatch[1] : moyenMatch ? moyenMatch[1].trim().replace(/\s/g, ' ') : '?',
     }
   }
 
@@ -166,7 +241,7 @@ export default function MesEstimationsPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {estimations.map((estimation) => {
-              const details = extractEstimationDetails(estimation.content)
+              const details = extractEstimationDetails(estimation)
               return (
                 <Card key={estimation.id} className="relative overflow-hidden p-6 transition-all hover:shadow-xl">
                   {/* Header Card */}
@@ -180,7 +255,7 @@ export default function MesEstimationsPage() {
                         </div>
                         <div>
                           <h3 className="font-bold text-gray-900">{details.type}</h3>
-                          <p className="text-xs text-gray-500">{details.surface}m²</p>
+                          <p className="text-xs text-gray-500">{details.surface}</p>
                         </div>
                       </div>
                     </div>
@@ -262,19 +337,49 @@ export default function MesEstimationsPage() {
               </div>
             </div>
             <div className="p-6">
-              <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 text-sm text-gray-900">
-                {selectedEstimation.content}
-              </pre>
-              <div className="mt-4 flex gap-2">
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    navigator.clipboard.writeText(selectedEstimation.content)
-                    alert('✅ Copié dans le presse-papier !')
-                  }}
-                >
-                  📋 Copier le texte complet
-                </Button>
+              {selectedEstimation.structuredData ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Type de travaux</h3>
+                    <p className="text-gray-600">{selectedEstimation.structuredData.workType}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Surface</h3>
+                    <p className="text-gray-600">{selectedEstimation.structuredData.surface}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Budget estimé</h3>
+                    <div className="mt-2 space-y-1 text-gray-600">
+                      <p>• Min: {selectedEstimation.structuredData.budget.min.toLocaleString('fr-FR')}€</p>
+                      <p>• Moyen: <strong>{selectedEstimation.structuredData.budget.moyen.toLocaleString('fr-FR')}€</strong></p>
+                      <p>• Max: {selectedEstimation.structuredData.budget.max.toLocaleString('fr-FR')}€</p>
+                    </div>
+                  </div>
+                  {selectedEstimation.structuredData.delai && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Délai estimé</h3>
+                      <p className="text-gray-600">{selectedEstimation.structuredData.delai}</p>
+                    </div>
+                  )}
+                  {selectedEstimation.structuredData.quality && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Qualité</h3>
+                      <p className="text-gray-600">{selectedEstimation.structuredData.quality}</p>
+                    </div>
+                  )}
+                  {selectedEstimation.structuredData.postalCode && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Code postal</h3>
+                      <p className="text-gray-600">{selectedEstimation.structuredData.postalCode}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 text-sm text-gray-900">
+                  {selectedEstimation.content}
+                </pre>
+              )}
+              <div className="mt-6 flex gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setSelectedEstimation(null)}

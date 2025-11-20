@@ -37,14 +37,15 @@ export async function POST(request: NextRequest) {
       estimation_min: estimation.estimation.min,
       estimation_max: estimation.estimation.max,
       estimation_moyen: estimation.estimation.moyen,
-      details: estimation.details,
-      facteurs: estimation.facteurs,
-      conseils: estimation.conseils,
-      aides: estimation.aides,
-      delai: estimation.delai,
-      confidence: estimation.metadata.confidence,
-      questionnaire_answers: estimation.metadata.questionnaire.answers,
+      details: estimation.details || [],
+      facteurs: estimation.facteurs || [],
+      conseils: estimation.conseils || [],
+      aides: estimation.aides || [],
+      delai: estimation.delai || null,
+      confidence: estimation.metadata?.confidence || 'medium',
+      questionnaire_answers: estimation.metadata?.questionnaire?.answers || {},
       is_favorite: false,
+      method_type: 'simulateur_manuel',
     }
 
     // Insérer dans Supabase (ou mettre à jour si déjà existante)
