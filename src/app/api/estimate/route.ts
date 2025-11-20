@@ -3,7 +3,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { generateEstimation } from '@/lib/ai/estimator'
 import { type EstimationRequest, type EstimationResult } from '@/types/questionnaire'
 import { getWorkTypeById } from '@/types/work-types'
 
@@ -191,27 +190,17 @@ export async function POST(request: NextRequest) {
 
     const estimationRequest: EstimationRequest = validationResult.data
 
-    // 3. Vérifier que la clé API est configurée (mode démo si absente)
-    console.log('3. Vérification mode démo...')
-    const apiKey = process.env.ANTHROPIC_API_KEY || ''
-    const isDemoMode = !apiKey || apiKey.includes('remplacez-moi') || apiKey.length < 20
-    console.log('Mode démo:', isDemoMode, '(clé présente:', !!apiKey, ', longueur:', apiKey.length, ')')
+    // 3. Générer l'estimation en mode démo (gratuit)
+    console.log('3. Génération estimation en mode démo...')
+    console.log(`MODE DÉMO: Génération estimation pour ${estimationRequest.workTypeId}`)
     
     let estimation
-
-    if (isDemoMode) {
-      console.log(`MODE DÉMO: Génération estimation fictive pour ${estimationRequest.workTypeId}`)
-      try {
-        estimation = generateDemoEstimation(estimationRequest)
-        console.log('✅ Estimation démo générée avec succès')
-      } catch (demoError) {
-        console.error('❌ ERREUR dans generateDemoEstimation:', demoError)
-        throw demoError
-      }
-    } else {
-      // 4. Générer l'estimation avec l'IA
-      console.log(`Génération estimation IA pour ${estimationRequest.workTypeId}`)
-      estimation = await generateEstimation(estimationRequest)
+    try {
+      estimation = generateDemoEstimation(estimationRequest)
+      console.log('✅ Estimation démo générée avec succès')
+    } catch (demoError) {
+      console.error('❌ ERREUR dans generateDemoEstimation:', demoError)
+      throw demoError
     }
 
     // 5. Retourner le résultat

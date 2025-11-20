@@ -1,11 +1,9 @@
 "use client"
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { UserMenu } from './UserMenu'
-import { AICreditsDisplay } from './AICreditsDisplay'
-import { createClient } from '@/lib/supabase/client'
 
 interface NavLink {
   href: string
@@ -13,23 +11,15 @@ interface NavLink {
 }
 
 const links: NavLink[] = [
-  { href: '/#hero', label: 'Accueil' },
-  { href: '/select-work', label: 'Simulateur' },
+  { href: '/', label: 'Accueil' },
+  { href: '/simulateur', label: 'Simulateur' },
   { href: '/chat', label: 'Estimation IA' },
   { href: '/analyse-photo', label: 'Analyse Photo IA' },
-  { href: '/#how-it-works', label: 'Comment ça marche' },
+  { href: '/comment-ca-marche', label: 'Comment ça marche' },
 ]
 
 export function Navbar() {
-  const [user, setUser] = useState<any>(null)
   const [showCommencerMenu, setShowCommencerMenu] = useState(false)
-
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
-  }, [])
 
   return (
     <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur-md">
@@ -130,21 +120,8 @@ export function Navbar() {
             )}
           </div>
           
-          <AICreditsDisplay />
-          
-          {/* Si connecté : UserMenu, sinon : Connexion/Inscription */}
-          {user ? (
-            <UserMenu />
-          ) : (
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" asChild>
-                <Link href="/login">Connexion</Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link href="/signup">Inscription</Link>
-              </Button>
-            </div>
-          )}
+          {/* UserMenu gère lui-même l'affichage selon l'état de connexion */}
+          <UserMenu />
         </div>
       </div>
     </header>

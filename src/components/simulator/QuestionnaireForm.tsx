@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react'
@@ -117,25 +118,19 @@ export function QuestionnaireForm({ questionnaire, onComplete }: QuestionnaireFo
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b bg-white">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <Link href="/" className="text-2xl font-semibold text-gray-900">
-            SimuTravaux
-          </Link>
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm text-gray-600 transition hover:text-gray-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Changer de type de travaux
-          </Link>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
         <div className="mx-auto max-w-3xl">
+          {/* Back link */}
+          <div className="mb-6 flex justify-end">
+            <Link
+              href="/select-work"
+              className="flex items-center gap-2 text-sm text-gray-600 transition hover:text-gray-900"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Changer de type de travaux
+            </Link>
+          </div>
           {/* Progress */}
           <ProgressBar
             currentStep={currentStepIndex + 1}

@@ -47,7 +47,7 @@ export function Hero() {
           </p>
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="/select-work">
+            <Link href="/simulateur">
               <Button size="lg" className="w-full sm:w-auto">
                 Commencer mon estimation
                 <ArrowRight className="ml-2 h-5 w-5" />

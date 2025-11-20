@@ -26,6 +26,7 @@ interface AnalysisResult {
 export default function AnalyzePhotoPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -34,7 +35,7 @@ export default function AnalyzePhotoPage() {
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Vérifier l'authentification et charger les crédits
+  // Vérifier l'authentification (OBLIGATOIRE pour analyse photo)
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient()
@@ -46,6 +47,7 @@ export default function AnalyzePhotoPage() {
       }
 
       setIsAuthenticated(true)
+      setIsLoading(false)
     }
 
     checkAuth()
@@ -174,7 +176,7 @@ export default function AnalyzePhotoPage() {
             Analyse Photo IA 📸
           </h1>
           <p className="text-gray-600">
-            Téléchargez une photo de votre espace et obtenez une estimation instantanée gratuite
+            Téléchargez une photo de votre espace et obtenez une estimation instantanée
           </p>
         </div>
 
@@ -266,7 +268,7 @@ export default function AnalyzePhotoPage() {
                     ) : (
                       <>
                         <Sparkles className="mr-2 h-5 w-5" />
-                        Analyser avec l'IA gratuitement
+                        Analyser avec l'IA
                       </>
                     )}
                   </Button>
@@ -435,57 +437,21 @@ export default function AnalyzePhotoPage() {
               {/* Actions */}
               <div className="mt-8 flex gap-3">
                 <Button
-                  onClick={async () => {
-                    try {
-                      const supabase = createClient()
-                      const { data: { user } } = await supabase.auth.getUser()
-                      
-                      if (!user) {
-                        alert('❌ Vous devez être connecté pour sauvegarder')
-                        return
-                      }
-
-                      const estimation = {
-                        id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        user_id: user.id,
-                        method_type: 'analyse_photo',
-                        work_type_id: result.workType.toLowerCase().replace(/\s+/g, '-'),
-                        work_type_name: result.workType,
-                        estimation_min: result.estimatedBudget.min,
-                        estimation_moyen: result.estimatedBudget.average,
-                        estimation_max: result.estimatedBudget.max,
-                        questionnaire_answers: {
-                          room_type: result.roomType,
-                          current_state: result.currentState,
-                          estimated_area: result.estimatedArea,
-                          materials: result.materials,
-                          confidence: result.confidence,
-                          full_details: result.details
-                        },
-                        details: result.materials.map((m, idx) => ({ 
-                          label: m, 
-                          montant: 0,
-                          ordre: idx + 1 
-                        })),
-                        facteurs: [],
-                        conseils: result.recommendations.map((r, idx) => ({ 
-                          text: r,
-                          ordre: idx + 1 
-                        })),
-                        aides: []
-                      }
-
-                      const { error } = await supabase
-                        .from('estimations')
-                        .insert(estimation)
-
-                      if (error) throw error
-
-                      alert('✅ Analyse sauvegardée dans "Mes estimations" !')
-                    } catch (err) {
-                      console.error('Erreur sauvegarde:', err)
-                      alert('❌ Erreur lors de la sauvegarde')
+                  onClick={() => {
+                    // Sauvegarder l'estimation
+                    const estimation = {
+                      id: Date.now().toString(),
+                      type: 'photo',
+                      content: JSON.stringify(result),
+                      createdAt: Date.now(),
                     }
+                    
+                    const saved = localStorage.getItem('saved-estimations') || '[]'
+                    const estimations = JSON.parse(saved)
+                    estimations.push(estimation)
+                    localStorage.setItem('saved-estimations', JSON.stringify(estimations))
+                    
+                    alert('✅ Analyse sauvegardée dans "Mes estimations" !')
                   }}
                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600"
                 >

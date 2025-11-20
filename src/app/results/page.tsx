@@ -1,9 +1,5 @@
 "use client"
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -77,22 +73,21 @@ export default function ResultsPage() {
     setIsSaving(true)
 
     try {
-      const response = await fetch('/api/estimations/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(estimation),
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setIsSaved(true)
-        setTimeout(() => setIsSaved(false), 3000)
-      } else {
-        alert('❌ Erreur lors de la sauvegarde: ' + result.error.message)
+      // Sauvegarder dans localStorage (comme le chat IA)
+      const savedEstimation = {
+        id: Date.now().toString(),
+        content: `Budget estimé pour ${estimation.workTypeName} :\n\nFourchette: ${estimation.estimation.min}€ - ${estimation.estimation.max}€\nMoyen : **${estimation.estimation.moyen}€**\n\nDélai estimé: ${estimation.delai}`,
+        chatId: null,
+        createdAt: Date.now(),
       }
+      
+      const saved = localStorage.getItem('saved-estimations') || '[]'
+      const estimations = JSON.parse(saved)
+      estimations.push(savedEstimation)
+      localStorage.setItem('saved-estimations', JSON.stringify(estimations))
+      
+      setIsSaved(true)
+      setTimeout(() => setIsSaved(false), 3000)
     } catch (error) {
       console.error('Erreur sauvegarde:', error)
       alert('❌ Une erreur est survenue lors de la sauvegarde')

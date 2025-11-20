@@ -5,7 +5,6 @@ import { Send, Sparkles, Loader2, Bot, User, ArrowDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Footer } from '@/components/layout/Footer'
-import { createClient } from '@/lib/supabase/client'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -540,65 +539,31 @@ export default function ChatPage() {
                       <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{cleanMarkdown(message.content)}</p>
                     
                     {/* Bouton Sauvegarder pour les estimations */}
-                    {message.role === 'assistant' && 
-                     message.content.includes('Budget') && 
-                     message.content.includes('Décomposition') && 
-                     message.content.includes('Main d\'œuvre') && 
-                     message.content.length > 400 && (
-                      <div className="mt-2 flex gap-1.5 border-t pt-2">
+                    {message.role === 'assistant' && (message.content.includes('Budget') || message.content.includes('budget') || message.content.includes('€')) && message.content.length > 200 && (
+                      <div className="mt-3 flex gap-2 border-t border-gray-200 pt-3">
                         <Button
-                          onClick={async () => {
-                            try {
-                              const supabase = createClient()
-                              const { data: { user } } = await supabase.auth.getUser()
-                              
-                              if (!user) {
-                                alert('❌ Vous devez être connecté pour sauvegarder')
-                                return
-                              }
-
-                              // Parser le message pour extraire les infos
-                              const budgetMatch = message.content.match(/([\d\s]+)€\s*-\s*([\d\s]+)€\s*-\s*([\d\s]+)€/)
-                              const surfaceMatch = message.content.match(/(\d+)m²/)
-                              const workTypeMatch = message.content.match(/pour\s+\d+m²\s+de\s+(.+?)\s*:/i)
-                              
-                              const estimation = {
-                                id: `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                                user_id: user.id,
-                                method_type: 'chat_ia',
-                                work_type_id: workTypeMatch ? workTypeMatch[1].toLowerCase().replace(/\s+/g, '-') : 'travaux',
-                                work_type_name: workTypeMatch ? workTypeMatch[1] : 'Travaux de rénovation',
-                                estimation_min: budgetMatch ? parseInt(budgetMatch[1].replace(/\s/g, '')) : 0,
-                                estimation_moyen: budgetMatch ? parseInt(budgetMatch[2].replace(/\s/g, '')) : 0,
-                                estimation_max: budgetMatch ? parseInt(budgetMatch[3].replace(/\s/g, '')) : 0,
-                                questionnaire_answers: {
-                                  surface: surfaceMatch ? surfaceMatch[1] : '?',
-                                  full_message: message.content
-                                },
-                                details: [],
-                                facteurs: [],
-                                conseils: [],
-                                aides: []
-                              }
-
-                              const { error } = await supabase
-                                .from('estimations')
-                                .insert(estimation)
-
-                              if (error) throw error
-
-                              alert('✅ Estimation sauvegardée dans "Mes estimations" !')
-                            } catch (err) {
-                              console.error('Erreur sauvegarde:', err)
-                              alert('❌ Erreur lors de la sauvegarde')
+                          onClick={() => {
+                            const estimation = {
+                              id: Date.now().toString(),
+                              content: message.content,
+                              chatId: currentChatId,
+                              createdAt: Date.now(),
                             }
+                            
+                            // Sauvegarder dans localStorage
+                            const saved = localStorage.getItem('saved-estimations') || '[]'
+                            const estimations = JSON.parse(saved)
+                            estimations.push(estimation)
+                            localStorage.setItem('saved-estimations', JSON.stringify(estimations))
+                            
+                            alert('✅ Estimation sauvegardée dans "Mes estimations" !')
                           }}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 py-1.5 text-xs text-white hover:from-green-700 hover:to-emerald-700"
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 py-2 text-sm font-medium text-white shadow-md hover:from-green-700 hover:to-emerald-700 hover:shadow-lg"
                         >
-                          <svg className="mr-1.5 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          Sauvegarder
+                          💾 Sauvegarder
                         </Button>
                         <Button
                           onClick={() => {
@@ -606,11 +571,12 @@ export default function ChatPage() {
                             alert('✅ Copié dans le presse-papier !')
                           }}
                           variant="outline"
-                          className="py-1.5 text-xs"
+                          className="flex-1 py-2 text-sm font-medium"
                         >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
+                          📋 Copier
                         </Button>
                       </div>
                     )}

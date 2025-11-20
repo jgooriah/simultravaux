@@ -1,32 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
-// Configuration - Mode démo forcé (pas d'accès Claude Vision)
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
-const isDemoMode = true // FORCÉ : Claude Vision nécessite un plan payant
-const anthropic = null
+// Configuration OpenAI
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
 
-console.log('📸 [Photo API Config] MODE DÉMO OPTIMISÉ (Claude Vision nécessite un plan payant)')
+console.log('📸 [Photo API Config]', openai ? '✅ OPENAI GPT-4 VISION ACTIVÉ' : '⚠️ MODE DÉMO')
 
-// Coût en crédits pour une analyse photo
-const PHOTO_ANALYSIS_COST = 5
-
-// Fonction de démo pour analyser une image
-async function analyzImageDemo(imageBase64: string, fileName: string): Promise<any> {
-  console.log('🎯 [Demo Mode] Analyse d\'image simulée')
+// Fonction de démo pour analyser une image (backup)
+async function analyzImageDemo(fileName: string): Promise<any> {
+  console.log('🎯 [Demo Mode] Analyse simulée')
   
-  // Simulation de traitement
   await new Promise(resolve => setTimeout(resolve, 2000))
   
-  // Extraire le type d'image du nom de fichier ou assumer
   const fileNameLower = fileName.toLowerCase()
   
-  // Déterminer le type de pièce/travaux basé sur des mots-clés
   let workType = 'Rénovation complète'
   let roomType = 'Espace intérieur'
-  let currentState = 'État correct nécessitant une modernisation'
-  let estimatedArea = '15-20 m²'
   let materials = ['Plâtre', 'Peinture', 'Carrelage']
   let recommendations = [
     'Prévoir un rafraîchissement complet des peintures',
@@ -35,8 +26,7 @@ async function analyzImageDemo(imageBase64: string, fileName: string): Promise<a
     'Moderniser l\'éclairage avec des LED',
   ]
   
-  // Logique basique de détection par nom de fichier
-  if (fileNameLower.includes('cuisine') || fileNameLower.includes('kitchen') || fileNameLower.includes('kitchen')) {
+  if (fileNameLower.includes('cuisine')) {
     workType = 'Rénovation complète de cuisine'
     roomType = 'Cuisine'
     materials = ['Carrelage mural', 'Plan de travail', 'Faïence', 'Meubles']
@@ -46,7 +36,7 @@ async function analyzImageDemo(imageBase64: string, fileName: string): Promise<a
       'Refaire la crédence avec un carrelage moderne',
       'Optimiser l\'éclairage au-dessus du plan de travail',
     ]
-  } else if (fileNameLower.includes('salle') || fileNameLower.includes('bain') || fileNameLower.includes('bathroom') || fileNameLower.includes('sdb')) {
+  } else if (fileNameLower.includes('salle') || fileNameLower.includes('bain')) {
     workType = 'Rénovation complète de salle de bain'
     roomType = 'Salle de bain'
     materials = ['Carrelage', 'Faïence', 'Sanitaires', 'Robinetterie']
@@ -56,79 +46,92 @@ async function analyzImageDemo(imageBase64: string, fileName: string): Promise<a
       'Prévoir une VMC pour l\'aération',
       'Choisir des matériaux résistants à l\'humidité',
     ]
-  } else if (fileNameLower.includes('chambre') || fileNameLower.includes('bedroom') || fileNameLower.includes('room')) {
-    workType = 'Rénovation de chambre'
-    roomType = 'Chambre'
-    materials = ['Peinture', 'Parquet', 'Plâtre']
-    recommendations = [
-      'Choisir des couleurs apaisantes pour favoriser le sommeil',
-      'Installer un parquet flottant ou stratifié',
-      'Prévoir une isolation phonique efficace',
-      'Optimiser les rangements avec des placards sur-mesure',
-    ]
-  } else if (fileNameLower.includes('salon') || fileNameLower.includes('living') || fileNameLower.includes('sejour') || fileNameLower.includes('séjour')) {
-    workType = 'Rénovation de salon'
-    roomType = 'Salon'
-    materials = ['Peinture', 'Parquet', 'Plâtre', 'Éclairage']
-    recommendations = [
-      'Créer une ambiance chaleureuse avec des tons neutres',
-      'Installer un éclairage LED modulable',
-      'Prévoir des prises électriques supplémentaires',
-      'Optimiser l\'agencement pour un espace convivial',
-    ]
-  } else if (fileNameLower.includes('bureau') || fileNameLower.includes('office')) {
-    workType = 'Aménagement de bureau'
-    roomType = 'Bureau'
-    materials = ['Peinture', 'Parquet', 'Éclairage']
-    recommendations = [
-      'Optimiser l\'éclairage naturel et artificiel',
-      'Prévoir suffisamment de prises électriques et réseau',
-      'Choisir des couleurs favorisant la concentration',
-      'Installer une isolation phonique si nécessaire',
-    ]
-  } else if (fileNameLower.includes('wc') || fileNameLower.includes('toilette')) {
-    workType = 'Rénovation de WC'
-    roomType = 'Toilettes'
-    materials = ['Carrelage', 'Sanitaires', 'Faïence']
-    recommendations = [
-      'Installer des WC suspendus pour faciliter l\'entretien',
-      'Optimiser l\'espace de rangement',
-      'Choisir des matériaux faciles à nettoyer',
-      'Prévoir une ventilation efficace',
-    ]
   }
   
-  // Budget estimé basé sur le type de travaux
-  let minBudget = 3000
-  let maxBudget = 8000
-  
-  if (workType.includes('cuisine')) {
-    minBudget = 8000
-    maxBudget = 25000
-  } else if (workType.includes('salle de bain')) {
-    minBudget = 5000
-    maxBudget = 15000
-  } else if (workType.includes('chambre') || workType.includes('salon')) {
-    minBudget = 2000
-    maxBudget = 8000
-  }
-  
+  const minBudget = workType.includes('cuisine') ? 8000 : workType.includes('salle de bain') ? 5000 : 3000
+  const maxBudget = workType.includes('cuisine') ? 25000 : workType.includes('salle de bain') ? 15000 : 8000
   const avgBudget = Math.round((minBudget + maxBudget) / 2)
   
   return {
     workType,
     roomType,
-    currentState,
-    estimatedArea,
+    currentState: 'État correct nécessitant une modernisation',
+    estimatedArea: '15-20 m²',
     materials,
     recommendations,
-    estimatedBudget: {
-      min: minBudget,
-      max: maxBudget,
-      average: avgBudget,
-    },
-    details: `Analyse basée sur l'image fournie. La pièce semble être ${roomType.toLowerCase()} d'environ ${estimatedArea}. L'état actuel suggère des travaux de ${workType.toLowerCase()}. Les matériaux identifiés incluent : ${materials.join(', ')}. Un budget compris entre ${minBudget.toLocaleString('fr-FR')}€ et ${maxBudget.toLocaleString('fr-FR')}€ est recommandé pour une rénovation complète et de qualité.`,
-    confidence: 'Estimation basée sur analyse visuelle (mode démo)',
+    estimatedBudget: { min: minBudget, max: maxBudget, average: avgBudget },
+    details: `Analyse basée sur le nom du fichier. La pièce semble être ${roomType.toLowerCase()} d'environ 15-20m². Budget estimé : ${minBudget.toLocaleString('fr-FR')}€ - ${maxBudget.toLocaleString('fr-FR')}€.`,
+    confidence: 'Estimation basée sur le nom de fichier (mode démo)',
+  }
+}
+
+// Analyser une image avec GPT-4 Vision
+async function analyzeImageWithGPT4Vision(imageBase64: string): Promise<any> {
+  if (!openai) throw new Error('OpenAI non configuré')
+  
+  console.log('🔍 [GPT-4 Vision] Analyse de l\'image...')
+  
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `Analyse cette photo de rénovation et fournis une estimation détaillée au format JSON strict suivant :
+
+{
+  "workType": "Type de travaux nécessaires",
+  "roomType": "Type de pièce (Cuisine, Salle de bain, Chambre, Salon, etc.)",
+  "currentState": "Description de l'état actuel",
+  "estimatedArea": "Surface estimée en m²",
+  "materials": ["Liste", "des", "matériaux", "visibles"],
+  "recommendations": ["Liste", "de", "recommandations"],
+  "estimatedBudget": {
+    "min": 5000,
+    "max": 15000,
+    "average": 10000
+  },
+  "details": "Analyse détaillée de l'espace",
+  "confidence": "Niveau de confiance de l'estimation"
+}
+
+IMPORTANT : 
+- Réponds UNIQUEMENT avec le JSON, sans texte avant ou après
+- Les budgets doivent être en euros
+- Sois précis et détaillé
+- Base-toi sur ce que tu vois réellement dans l'image`,
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: imageBase64,
+            },
+          },
+        ],
+      },
+    ],
+    max_tokens: 1000,
+    temperature: 0.3,
+  })
+  
+  const content = response.choices[0]?.message?.content || ''
+  console.log('📝 [GPT-4 Vision] Réponse brute:', content.substring(0, 200))
+  
+  // Parser le JSON
+  try {
+    // Extraire le JSON de la réponse (au cas où il y a du texte autour)
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error('Pas de JSON trouvé dans la réponse')
+    
+    const analysis = JSON.parse(jsonMatch[0])
+    console.log('✅ [GPT-4 Vision] Analyse terminée')
+    
+    return analysis
+  } catch (error) {
+    console.error('❌ [GPT-4 Vision] Erreur parsing JSON:', error)
+    throw new Error('Erreur lors de l\'analyse de l\'image')
   }
 }
 
@@ -160,31 +163,24 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Analyser l'image (mode démo pour l'instant)
+    // Analyser l'image
     let analysis
     
-    if (isDemoMode) {
-      console.log('🎯 [Photo API] Mode DÉMO activé')
-      analysis = await analyzImageDemo(image, fileName || 'image.jpg')
+    if (openai) {
+      try {
+        analysis = await analyzeImageWithGPT4Vision(image)
+      } catch (error: any) {
+        console.error('❌ [Photo API] Erreur GPT-4 Vision:', error)
+        // Fallback sur mode démo
+        console.log('🔄 [Photo API] Fallback sur mode démo')
+        analysis = await analyzImageDemo(fileName || 'image.jpg')
+      }
     } else {
-      // TODO: Intégration Claude Vision API quand disponible
-      console.log('✅ [Photo API] Appel à Claude Vision...')
-      throw new Error('Claude Vision non disponible - utiliser mode démo')
+      console.log('🎯 [Photo API] Mode DÉMO activé')
+      analysis = await analyzImageDemo(fileName || 'image.jpg')
     }
     
     console.log('✅ [Photo API] Analyse terminée')
-    
-    // Logger l'utilisation (sans crédits)
-    await supabase.from('ai_usage_logs').insert({
-      user_id: user.id,
-      feature_type: 'photo_analysis',
-      credits_used: 0,
-      metadata: {
-        fileName: fileName || 'unknown',
-        imageSize: image.length,
-        analysisType: 'demo',
-      },
-    })
     
     // Retourner les résultats
     return NextResponse.json({
@@ -200,4 +196,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

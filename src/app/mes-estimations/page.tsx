@@ -5,24 +5,19 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
-import { Eye, Trash2, Heart, MessageCircle, Camera, FileText, Plus } from 'lucide-react'
 
-interface Estimation {
+interface SavedEstimation {
   id: string
-  work_type_name: string
-  estimation_min: number
-  estimation_moyen: number
-  estimation_max: number
-  method_type: 'chat_ia' | 'analyse_photo' | 'simulateur_manuel'
-  is_favorite: boolean
-  created_at: string
+  content: string
+  chatId: string | null
+  createdAt: number
 }
 
 export default function MesEstimationsPage() {
-  const [estimations, setEstimations] = useState<Estimation[]>([])
+  const [estimations, setEstimations] = useState<SavedEstimation[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [filterMethod, setFilterMethod] = useState<string>('all')
+  const [selectedEstimation, setSelectedEstimation] = useState<SavedEstimation | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -41,113 +36,54 @@ export default function MesEstimationsPage() {
 
     setIsAuthenticated(true)
     
-    // Charger les estimations depuis Supabase
+    // Charger les estimations depuis localStorage
+    const saved = localStorage.getItem('saved-estimations') || '[]'
     try {
-      const { data, error } = await supabase
-        .from('estimations')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Erreur chargement:', error)
-      } else {
-        setEstimations(data || [])
-      }
+      const parsed = JSON.parse(saved)
+      setEstimations(parsed.sort((a: SavedEstimation, b: SavedEstimation) => b.createdAt - a.createdAt))
     } catch (e) {
-      console.error('Erreur:', e)
+      console.error('Erreur chargement estimations:', e)
     }
     
     setIsLoading(false)
   }
 
-  const deleteEstimation = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette estimation ?')) return
+  const deleteEstimation = (id: string) => {
+    const updated = estimations.filter((e) => e.id !== id)
+    setEstimations(updated)
+    localStorage.setItem('saved-estimations', JSON.stringify(updated))
+  }
 
+  const extractEstimationDetails = (content: string) => {
+    // Essayer de parser comme JSON (analyse photo)
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('estimations')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
-
-      setEstimations(estimations.filter(e => e.id !== id))
-      alert('✅ Estimation supprimée')
-    } catch (err) {
-      console.error('Erreur suppression:', err)
-      alert('❌ Erreur lors de la suppression')
+      const parsed = JSON.parse(content)
+      if (parsed.workType && parsed.estimatedBudget) {
+        const surface = parsed.estimatedArea?.match(/(\d+)/)?.[1] || '?'
+        return {
+          surface,
+          type: parsed.workType || 'Travaux',
+          montant: parsed.estimatedBudget.average?.toLocaleString('fr-FR') || '?',
+        }
+      }
+    } catch (e) {
+      // Pas du JSON, continuer avec le parsing texte
+    }
+    
+    // Parsing texte (chat IA)
+    const budgetMatch = content.match(/Budget estimé pour (\d+)m² de (.+?) :/)
+    const moyenMatch = content.match(/Moyen : \*\*(.+?)€\*\*/)
+    
+    return {
+      surface: budgetMatch ? budgetMatch[1] : '?',
+      type: budgetMatch ? budgetMatch[2].trim() : 'Travaux',
+      montant: moyenMatch ? moyenMatch[1] : '?',
     }
   }
-
-  const toggleFavorite = async (id: string) => {
-    try {
-      const estimation = estimations.find(e => e.id === id)
-      if (!estimation) return
-
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('estimations')
-        .update({ is_favorite: !estimation.is_favorite })
-        .eq('id', id)
-
-      if (error) throw error
-
-      setEstimations(estimations.map(e => 
-        e.id === id ? { ...e, is_favorite: !e.is_favorite } : e
-      ))
-    } catch (err) {
-      console.error('Erreur:', err)
-    }
-  }
-
-  const getMethodIcon = (method: string) => {
-    switch (method) {
-      case 'chat_ia':
-        return <MessageCircle className="h-5 w-5 text-purple-600" />
-      case 'analyse_photo':
-        return <Camera className="h-5 w-5 text-green-600" />
-      case 'simulateur_manuel':
-        return <FileText className="h-5 w-5 text-blue-600" />
-      default:
-        return <FileText className="h-5 w-5 text-gray-600" />
-    }
-  }
-
-  const getMethodName = (method: string) => {
-    switch (method) {
-      case 'chat_ia':
-        return 'Chat IA'
-      case 'analyse_photo':
-        return 'Analyse Photo'
-      case 'simulateur_manuel':
-        return 'Simulateur'
-      default:
-        return 'Estimation'
-    }
-  }
-
-  const getMethodBadgeColor = (method: string) => {
-    switch (method) {
-      case 'chat_ia':
-        return 'bg-purple-100 text-purple-700'
-      case 'analyse_photo':
-        return 'bg-green-100 text-green-700'
-      case 'simulateur_manuel':
-        return 'bg-blue-100 text-blue-700'
-      default:
-        return 'bg-gray-100 text-gray-700'
-    }
-  }
-
-  const filteredEstimations = filterMethod === 'all'
-    ? estimations
-    : estimations.filter(e => e.method_type === filterMethod)
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-100/20">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
         <div className="text-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent"></div>
           <p className="mt-4 text-gray-600">Chargement...</p>
@@ -158,7 +94,7 @@ export default function MesEstimationsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-100/20">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
         <Card className="w-full max-w-md p-8 text-center">
           <div className="mb-4 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
@@ -185,74 +121,32 @@ export default function MesEstimationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-100/20">
-      {/* Pattern décoratif */}
-      <div className="fixed inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgb(99, 102, 241) 1px, transparent 0)',
-        backgroundSize: '40px 40px'
-      }} />
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Header */}
-      <div className="relative border-b border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="border-b border-white/20 bg-white/80 shadow-lg backdrop-blur-xl">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="mb-2 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-3xl font-bold text-transparent">
+              <h1 className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-3xl font-bold text-transparent">
                 Mes Estimations
               </h1>
               <p className="text-sm text-gray-600">
-                {filteredEstimations.length} estimation{filteredEstimations.length > 1 ? 's' : ''} {filterMethod !== 'all' ? `(${getMethodName(filterMethod)})` : ''}
+                {estimations.length} estimation{estimations.length > 1 ? 's' : ''} sauvegardée{estimations.length > 1 ? 's' : ''}
               </p>
             </div>
-            <Button onClick={() => router.push('/select-work')} className="bg-gradient-to-r from-purple-600 to-blue-600">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button onClick={() => router.push('/chat')} className="bg-gradient-to-r from-purple-600 to-blue-600">
+              <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
               Nouvelle estimation
-            </Button>
-          </div>
-
-          {/* Filtres */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Button
-              variant={filterMethod === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilterMethod('all')}
-            >
-              Toutes ({estimations.length})
-            </Button>
-            <Button
-              variant={filterMethod === 'simulateur_manuel' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilterMethod('simulateur_manuel')}
-              className={filterMethod === 'simulateur_manuel' ? '' : 'hover:bg-blue-50'}
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Simulateur ({estimations.filter(e => e.method_type === 'simulateur_manuel').length})
-            </Button>
-            <Button
-              variant={filterMethod === 'chat_ia' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilterMethod('chat_ia')}
-              className={filterMethod === 'chat_ia' ? '' : 'hover:bg-purple-50'}
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Chat IA ({estimations.filter(e => e.method_type === 'chat_ia').length})
-            </Button>
-            <Button
-              variant={filterMethod === 'analyse_photo' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilterMethod('analyse_photo')}
-              className={filterMethod === 'analyse_photo' ? '' : 'hover:bg-green-50'}
-            >
-              <Camera className="mr-2 h-4 w-4" />
-              Analyse Photo ({estimations.filter(e => e.method_type === 'analyse_photo').length})
             </Button>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="container relative mx-auto px-4 py-8">
-        {filteredEstimations.length === 0 ? (
+      <div className="container mx-auto px-4 py-8">
+        {estimations.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="mb-4 flex justify-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
@@ -261,101 +155,139 @@ export default function MesEstimationsPage() {
                 </svg>
               </div>
             </div>
-            <h2 className="mb-2 text-xl font-bold text-gray-900">
-              {filterMethod === 'all' ? 'Aucune estimation sauvegardée' : `Aucune estimation ${getMethodName(filterMethod)}`}
-            </h2>
+            <h2 className="mb-2 text-xl font-bold text-gray-900">Aucune estimation sauvegardée</h2>
             <p className="mb-6 text-gray-600">
-              {filterMethod === 'all' 
-                ? 'Commencez par créer votre première estimation !'
-                : `Créez une estimation via ${getMethodName(filterMethod)}`
-              }
+              Commencez une conversation avec l'IA pour obtenir votre première estimation !
             </p>
-            <Button onClick={() => router.push('/select-work')} className="bg-gradient-to-r from-purple-600 to-blue-600">
-              Créer une estimation
+            <Button onClick={() => router.push('/chat')} className="bg-gradient-to-r from-purple-600 to-blue-600">
+              Démarrer un chat IA
             </Button>
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredEstimations.map((estimation) => (
-              <Card key={estimation.id} className="group relative overflow-hidden bg-white/80 p-6 transition-all hover:shadow-2xl backdrop-blur-sm">
-                {/* Badge favori */}
-                {estimation.is_favorite && (
-                  <div className="absolute right-4 top-4">
-                    <Heart className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  </div>
-                )}
-
-                {/* Icône méthode */}
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-50 to-blue-50">
-                      {getMethodIcon(estimation.method_type)}
+            {estimations.map((estimation) => {
+              const details = extractEstimationDetails(estimation.content)
+              return (
+                <Card key={estimation.id} className="relative overflow-hidden p-6 transition-all hover:shadow-xl">
+                  {/* Header Card */}
+                  <div className="mb-4 flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="mb-1 flex items-center gap-2">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-100 to-blue-100">
+                          <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">{details.type}</h3>
+                          <p className="text-xs text-gray-500">{details.surface}m²</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900">
-                        {estimation.work_type_name}
-                      </h3>
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getMethodBadgeColor(estimation.method_type)}`}>
-                        {getMethodName(estimation.method_type)}
-                      </span>
-                    </div>
+                    <button
+                      onClick={() => {
+                        if (confirm('Supprimer cette estimation ?')) {
+                          deleteEstimation(estimation.id)
+                        }
+                      }}
+                      className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </div>
-                </div>
 
-                {/* Budget */}
-                <div className="mb-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 p-4">
-                  <p className="mb-1 text-xs text-gray-600">Budget moyen</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {estimation.estimation_moyen?.toLocaleString('fr-FR')} €
+                  {/* Montant */}
+                  <div className="mb-4 rounded-lg bg-gradient-to-br from-purple-50 to-blue-50 p-4">
+                    <p className="text-xs text-gray-600">Budget moyen</p>
+                    <p className="text-2xl font-bold text-purple-700">{details.montant}€</p>
+                  </div>
+
+                  {/* Date */}
+                  <p className="mb-4 text-xs text-gray-500">
+                    {new Date(estimation.createdAt).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                   </p>
-                  {estimation.estimation_min && estimation.estimation_max && (
-                    <p className="mt-1 text-xs text-gray-600">
-                      {estimation.estimation_min.toLocaleString('fr-FR')} - {estimation.estimation_max.toLocaleString('fr-FR')} €
-                    </p>
-                  )}
-                </div>
 
-                {/* Date */}
-                <p className="mb-4 text-xs text-gray-500">
-                  Créée le {new Date(estimation.created_at).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </p>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => router.push(`/estimation/${estimation.id}`)}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600"
-                    size="sm"
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    Voir détails
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleFavorite(estimation.id)}
-                    className={estimation.is_favorite ? 'bg-yellow-50' : ''}
-                  >
-                    <Heart className={`h-4 w-4 ${estimation.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => deleteEstimation(estimation.id)}
-                    className="hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(estimation.content)
+                        alert('✅ Copié dans le presse-papier !')
+                      }}
+                    >
+                      <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copier
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600"
+                      onClick={() => setSelectedEstimation(estimation)}
+                    >
+                      Voir détails
+                    </Button>
+                  </div>
+                </Card>
+              )
+            })}
           </div>
         )}
       </div>
+
+      {/* Modal de détails */}
+      {selectedEstimation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSelectedEstimation(null)}>
+          <Card className="max-h-[80vh] w-full max-w-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 border-b bg-white p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Détails de l'estimation</h2>
+                <button
+                  onClick={() => setSelectedEstimation(null)}
+                  className="rounded-lg p-2 hover:bg-gray-100"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 text-sm text-gray-900">
+                {selectedEstimation.content}
+              </pre>
+              <div className="mt-4 flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedEstimation.content)
+                    alert('✅ Copié dans le presse-papier !')
+                  }}
+                >
+                  📋 Copier le texte complet
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedEstimation(null)}
+                  className="flex-1"
+                >
+                  Fermer
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
+

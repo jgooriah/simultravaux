@@ -111,9 +111,7 @@ export async function POST(request: NextRequest) {
       ],
     })
 
-    // Extraire le texte de la réponse (vérifier que c'est un TextBlock)
-    const firstBlock = message.content[0]
-    const aiResponse = firstBlock.type === 'text' ? firstBlock.text : ''
+    const aiResponse = message.content[0].text
     const tokensUsed = message.usage.input_tokens + message.usage.output_tokens
     const processingTime = Date.now() - startTime
 

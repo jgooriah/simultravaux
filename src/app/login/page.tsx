@@ -134,7 +134,7 @@ export default function LoginPage() {
                       <span className="ml-2 text-sm text-gray-600">Se souvenir de moi</span>
                     </label>
                     <Link
-                      href="/forgot-password"
+                      href="/reset-password"
                       className="text-sm text-blue-600 hover:text-blue-700"
                     >
                       Mot de passe oublié ?
